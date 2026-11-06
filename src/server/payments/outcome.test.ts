@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { decideOutcome } from "./outcome";
 
-const order = { id: "o-1", totalCents: 5500, currency: "USD" };
+const order = { id: "o-1", amountDueCents: 5500, currency: "USD" };
 const good = { status: "COMPLETED", value: "55.00", currency: "USD", customId: "o-1" };
 
 describe("decideOutcome", () => {
@@ -19,6 +19,10 @@ describe("decideOutcome", () => {
 
   it("leaves a pending capture pending", () => {
     expect(decideOutcome(order, { ...good, status: "PENDING" })).toBe("pending");
+  });
+
+  it("refuses a capture before an amount was set", () => {
+    expect(decideOutcome({ ...order, amountDueCents: null }, good)).toBe("mismatch");
   });
 
   it("treats a missing capture as pending, never paid", () => {

@@ -5,16 +5,18 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/server/db/client";
-import { orders, products, shops } from "@/server/db/schema";
+import { bookings, shops, styles } from "@/server/db/schema";
 import { endSellerSession, requireSellerShop, startSellerSession } from "@/server/seller-session";
-import { productInput, toCents } from "@/server/seller/product-input";
+import { parseOpeningHours, styleInput } from "@/server/seller/style-input";
 import { ImageRejected, storeImage } from "@/server/storage";
 
 export type FormState = { error?: string; savedAt?: number };
 
+const DEMO_SLUG = "crown-and-coil";
+
 export async function enterDemo() {
-  const [shop] = await db.select().from(shops).where(eq(shops.slug, "tenth-lane"));
-  if (!shop) throw new Error("Demo shop is not seeded");
+  const [shop] = await db.select().from(shops).where(eq(shops.slug, DEMO_SLUG));
+  if (!shop) throw new Error("Demo salon is not seeded");
   await startSellerSession(shop.ownerId);
   redirect("/dashboard");
 }
@@ -24,95 +26,101 @@ export async function signOut() {
   redirect("/");
 }
 
-export async function saveProduct(_: FormState, form: FormData): Promise<FormState> {
+const MAX_PHOTOS = 3;
+
+export async function saveStyle(_: FormState, form: FormData): Promise<FormState> {
   const shop = await requireSellerShop();
-  const parsed = productInput.safeParse({
-    name: form.get("name"),
-    description: form.get("description"),
-    price: form.get("price"),
-    options: form.get("options"),
-    isAvailable: form.get("isAvailable") ?? "",
-    negotiationEnabled: form.get("negotiationEnabled") ?? "",
-    minimumPrice: form.get("minimumPrice"),
+  const parsed = styleInput.safeParse({
+    ...Object.fromEntries(form),
+    haggling: form.get("haggling") ?? "",
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const id = z.uuid().optional().catch(undefined).parse(form.get("id") || undefined);
-  const file = form.get("image");
-  let imageUrl: string | undefined;
-  if (file instanceof File && file.size > 0) {
+  const files = form.getAll("images").filter((f): f is File => f instanceof File && f.size > 0);
+  if (files.length > MAX_PHOTOS) return { error: `Add up to ${MAX_PHOTOS} photos` };
+
+  let imageUrls: string[] | undefined;
+  if (files.length) {
     try {
-      imageUrl = await storeImage(file, "catalogue");
+      imageUrls = await Promise.all(files.map((file) => storeImage(file, "catalogue")));
     } catch (error) {
-      return { error: error instanceof ImageRejected ? error.message : "Image upload failed." };
+      return { error: error instanceof ImageRejected ? error.message : "Photo upload failed." };
     }
   }
-  if (!id && !imageUrl) return { error: "Add a product image" };
+  if (!id && !imageUrls) return { error: "Add at least one photo of this style" };
 
-  const { price, minimumPrice, negotiationEnabled, ...fields } = parsed.data;
   const values = {
-    ...fields,
-    priceCents: toCents(price),
-    negotiationEnabled,
-    minimumPriceCents: minimumPrice === undefined ? null : toCents(minimumPrice),
+    ...parsed.data,
     status: "published" as const,
     updatedAt: new Date(),
-    ...(imageUrl ? { imageUrl } : {}),
+    // New photos replace the gallery; leaving the picker empty keeps the current ones.
+    ...(imageUrls ? { imageUrls } : {}),
   };
-
   if (id) {
     await db
-      .update(products)
+      .update(styles)
       .set(values)
-      .where(and(eq(products.id, id), eq(products.shopId, shop.id)));
+      .where(and(eq(styles.id, id), eq(styles.shopId, shop.id)));
   } else {
-    await db.insert(products).values({ ...values, shopId: shop.id, imageUrl: imageUrl ?? "" });
+    await db.insert(styles).values({ ...values, shopId: shop.id, imageUrls: imageUrls ?? [] });
   }
-  revalidatePath("/dashboard/products");
-  redirect("/dashboard/products?saved=1");
+  revalidatePath("/dashboard/styles");
+  redirect("/dashboard/styles?saved=1");
 }
 
-export async function archiveProduct(form: FormData) {
+export async function archiveStyle(form: FormData) {
   const shop = await requireSellerShop();
   const id = z.uuid().parse(form.get("id"));
   await db
-    .update(products)
+    .update(styles)
     .set({ status: "archived", updatedAt: new Date() })
-    .where(and(eq(products.id, id), eq(products.shopId, shop.id)));
-  revalidatePath("/dashboard/products");
+    .where(and(eq(styles.id, id), eq(styles.shopId, shop.id)));
+  revalidatePath("/dashboard/styles");
 }
 
-export async function updateFulfilment(form: FormData) {
+// Only paid bookings move on; holds and failed payments never reach the diary.
+export async function updateBookingStatus(form: FormData) {
   const shop = await requireSellerShop();
   const id = z.uuid().parse(form.get("id"));
-  const status = z
-    .enum(["new", "processing", "shipped", "completed", "cancelled"])
-    .parse(form.get("status"));
+  const status = z.enum(["confirmed", "completed", "no_show", "cancelled"]).parse(form.get("status"));
+  const [booking] = await db
+    .select({ priceCents: bookings.priceCents })
+    .from(bookings)
+    .where(and(eq(bookings.id, id), eq(bookings.shopId, shop.id), eq(bookings.paymentStatus, "paid")));
+  if (!booking) return;
   await db
-    .update(orders)
-    .set({ fulfilmentStatus: status, updatedAt: new Date() })
-    .where(and(eq(orders.id, id), eq(orders.shopId, shop.id), eq(orders.paymentStatus, "paid")));
-  revalidatePath("/dashboard/orders");
-  revalidatePath(`/dashboard/orders/${id}`);
+    .update(bookings)
+    .set({
+      status,
+      // Completing an appointment means the balance was settled in the salon.
+      ...(status === "completed" ? { amountPaidCents: booking.priceCents } : {}),
+      updatedAt: new Date(),
+    })
+    .where(eq(bookings.id, id));
+  revalidatePath("/dashboard", "layout");
 }
 
 export async function saveSettings(_: FormState, form: FormData): Promise<FormState> {
   const shop = await requireSellerShop();
   const parsed = z
     .object({
-      name: z.string().trim().min(1, "Add a shop name").max(120),
+      name: z.string().trim().min(1, "Add a salon name").max(120),
       description: z.string().trim().max(500),
-      deliveryFee: z.coerce.number().min(0).max(1000),
-      deliveryInformation: z.string().trim().max(500),
+      address: z.string().trim().max(300),
+      depositPercent: z.coerce.number().int().min(10, "Deposit is at least 10%").max(100),
+      policies: z.string().trim().max(1000),
       assistantInstructions: z.string().trim().max(1000),
     })
     .safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const { deliveryFee, ...fields } = parsed.data;
+  const opening = parseOpeningHours(form);
+  if ("error" in opening) return { error: opening.error };
+
   await db
     .update(shops)
-    .set({ ...fields, deliveryFeeCents: toCents(deliveryFee), updatedAt: new Date() })
+    .set({ ...parsed.data, openingHours: opening.hours, updatedAt: new Date() })
     .where(eq(shops.id, shop.id));
   revalidatePath("/dashboard", "layout");
   return { savedAt: Date.now() };

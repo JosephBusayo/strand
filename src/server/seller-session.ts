@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/server/db/client";
 import { shops } from "@/server/db/schema";
 
-const COOKIE = "acag_seller";
+const COOKIE = "strand_stylist";
 
 const sign = (value: string) =>
   createHmac("sha256", process.env.SESSION_SECRET ?? "").update(value).digest("hex");

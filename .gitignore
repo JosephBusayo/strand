@@ -45,6 +45,3 @@ next-env.d.ts
 
 # reference screenshots are a third party's template, kept local
 /design-reference/
-
-# keep originals out until licences are recorded in the README
-/demo-assets/

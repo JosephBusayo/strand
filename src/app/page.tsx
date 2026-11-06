@@ -1,21 +1,23 @@
-import { Camera, CreditCard, MessagesSquare } from "lucide-react";
+import { CalendarCheck, Camera, MessagesSquare } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { ButtonLink } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Card, Eyebrow } from "@/components/ui/primitives";
 
+const SALON = "/s/crown-and-coil";
+
 const steps = [
-  { icon: Camera, title: "Screenshot", text: "Send a product photo from any post." },
+  { icon: Camera, title: "Send the look", text: "A screenshot from Instagram or TikTok, or just describe it." },
   {
     icon: MessagesSquare,
-    title: "Chat & confirm",
-    text: "The assistant finds it, confirms options and can haggle.",
+    title: "Price and haggle",
+    text: "The assistant shows matching styles, asks length and size, and quotes from the stylist's prices.",
   },
   {
-    icon: CreditCard,
-    title: "Pay with PayPal",
-    text: "The order is marked Paid only after server verification.",
+    icon: CalendarCheck,
+    title: "Pay to book",
+    text: "Pick a free time, pay a 30% deposit or in full with PayPal. Only paid slots are booked.",
   },
 ];
 
@@ -29,15 +31,15 @@ export default function DemoHub() {
     <>
       <header className="sticky top-0 z-10 border-b border-line bg-bg/85 backdrop-blur">
         <nav className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-4 md:px-10">
-          <Link href="/" aria-label="Acag home">
+          <Link href="/" aria-label="Strand home">
             <Logo />
           </Link>
           <div className="flex items-center gap-1 text-sm">
-            <Link href="/s/tenth-lane" className="hidden rounded-chip px-3 py-2 hover:bg-surface sm:block">
-              Try the shop
+            <Link href={SALON} className="hidden rounded-chip px-3 py-2 hover:bg-surface sm:block">
+              Book a style
             </Link>
             <Link href="/dashboard" className="rounded-chip px-3 py-2 hover:bg-surface">
-              Seller dashboard
+              Stylist dashboard
             </Link>
           </div>
         </nav>
@@ -45,19 +47,19 @@ export default function DemoHub() {
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-8 pb-10 md:px-10 md:pt-12">
         <section className="max-w-3xl">
-          <Eyebrow className="mb-3">AI commerce agent for social sellers</Eyebrow>
+          <Eyebrow className="mb-3">AI booking assistant for hair stylists</Eyebrow>
           <h1 className="text-display-sm md:text-display">
-            From &ldquo;how much?&rdquo;{" "}
-            <em className="font-normal text-ink-3">to a paid order, in one chat.</em>
+            From &ldquo;how much for this?&rdquo;{" "}
+            <em className="font-normal text-ink-3">to a paid booking, in one chat.</em>
           </h1>
           <p className="mt-3 max-w-xl text-ink-2">
-            Acag turns product questions and social-media screenshots into confirmed PayPal
-            orders.
+            Strand answers the price questions in a stylist&apos;s DMs, haggles within their limits
+            and books the chair only when a deposit is paid, so no-shows stop costing them a day.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
-            <ButtonLink href="/s/tenth-lane">Try the buyer experience</ButtonLink>
+            <ButtonLink href={SALON}>Try it as a client</ButtonLink>
             <ButtonLink href="/dashboard" variant="secondary">
-              Open the seller dashboard
+              Open the stylist dashboard
             </ButtonLink>
           </div>
         </section>
@@ -98,9 +100,9 @@ export default function DemoHub() {
           <Card>
             <h2 className="text-lg">What does what</h2>
             <p className="mt-1 text-sm text-ink-2">
-              AI matches screenshots to the catalogue and handles the conversation. The server
-              sets every price and enforces the seller&apos;s private minimum. PayPal handles
-              checkout, and payment status comes only from verified capture data.
+              AI matches screenshots to the stylist&apos;s portfolio and runs the conversation. The
+              server prices every length and option, enforces the stylist&apos;s private haggling
+              limit and checks free times. A slot is booked only after PayPal verifies the payment.
             </p>
           </Card>
         </section>

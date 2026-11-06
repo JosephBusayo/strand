@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { db } from "@/server/db/client";
 import { conversations } from "@/server/db/schema";
 
-const COOKIE = "acag_buyer";
+const COOKIE = "strand_client";
 
 export async function readBuyerSession() {
   return (await cookies()).get(COOKIE)?.value ?? null;

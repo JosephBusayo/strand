@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
-  boolean,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -11,7 +11,8 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-export const productStatus = pgEnum("product_status", ["draft", "published", "archived"]);
+export const styleStatus = pgEnum("style_status", ["draft", "published", "archived"]);
+export const styleCategory = pgEnum("style_category", ["women", "men", "unisex"]);
 export const senderType = pgEnum("sender_type", ["buyer", "assistant", "system"]);
 export const paymentStatus = pgEnum("payment_status", [
   "draft",
@@ -20,19 +21,24 @@ export const paymentStatus = pgEnum("payment_status", [
   "payment_failed",
   "cancelled",
 ]);
-export const fulfilmentStatus = pgEnum("fulfilment_status", [
-  "new",
-  "processing",
-  "shipped",
+export const bookingStatus = pgEnum("booking_status", [
+  "held",
+  "confirmed",
   "completed",
+  "no_show",
   "cancelled",
 ]);
+export const paymentPlan = pgEnum("payment_plan", ["deposit", "full"]);
 
 const id = () => uuid("id").primaryKey().default(sql`gen_random_uuid()`);
 const createdAt = () => timestamp("created_at", { withTimezone: true }).defaultNow().notNull();
 const updatedAt = () => timestamp("updated_at", { withTimezone: true }).defaultNow().notNull();
 
-export type ProductOption = { name: string; values: string[] };
+// A choice that can change the price, such as braid size. addCents may be negative.
+export type StyleOption = { name: string; values: { label: string; addCents: number }[] };
+
+// Keyed by weekday, 0 = Sunday. Times are "HH:MM" in the salon's timezone; null means closed.
+export type OpeningHours = Record<string, { open: string; close: string } | null>;
 
 export const users = pgTable("users", {
   id: id(),
@@ -48,28 +54,34 @@ export const shops = pgTable("shops", {
   slug: text("slug").notNull().unique(),
   description: text("description").notNull().default(""),
   currency: text("currency").notNull().default("USD"),
-  deliveryFeeCents: integer("delivery_fee_cents").notNull().default(0),
-  deliveryInformation: text("delivery_information").notNull().default(""),
+  address: text("address").notNull().default(""),
+  timezone: text("timezone").notNull().default("America/New_York"),
+  openingHours: jsonb("opening_hours").$type<OpeningHours>().notNull().default({}),
+  depositPercent: integer("deposit_percent").notNull().default(30),
+  policies: text("policies").notNull().default(""),
   assistantInstructions: text("assistant_instructions").notNull().default(""),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
 
-export const products = pgTable("products", {
+export const styles = pgTable("styles", {
   id: id(),
   shopId: uuid("shop_id").notNull().references(() => shops.id),
   name: text("name").notNull(),
+  category: styleCategory("category").notNull().default("unisex"),
   description: text("description").notNull().default(""),
-  priceCents: integer("price_cents").notNull(),
-  currency: text("currency").notNull().default("USD"),
-  imageUrl: text("image_url").notNull(),
-  options: jsonb("options").$type<ProductOption[]>().notNull().default([]),
-  stockQuantity: integer("stock_quantity"),
-  isAvailable: boolean("is_available").notNull().default(true),
-  negotiationEnabled: boolean("negotiation_enabled").notNull().default(false),
+  // The first image is the cover. All of them are used for matching a client's screenshot.
+  imageUrls: jsonb("image_urls").$type<string[]>().notNull().default([]),
+  // Priced by length when pricePerInchCents is set, otherwise basePriceCents is the price.
+  basePriceCents: integer("base_price_cents").notNull().default(0),
+  pricePerInchCents: integer("price_per_inch_cents"),
+  minLengthInches: integer("min_length_inches"),
+  maxLengthInches: integer("max_length_inches"),
+  durationHours: integer("duration_hours").notNull().default(2),
+  options: jsonb("options").$type<StyleOption[]>().notNull().default([]),
   // Private. Only server/catalogue/private.ts may select this column.
-  minimumPriceCents: integer("minimum_price_cents"),
-  status: productStatus("status").notNull().default("draft"),
+  maxDiscountPercent: integer("max_discount_percent").notNull().default(0),
+  status: styleStatus("status").notNull().default("draft"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -94,55 +106,62 @@ export const messages = pgTable("messages", {
   createdAt: createdAt(),
 });
 
-// Holds the agreed price server-side, so create_order_draft never takes a price from the model.
+// Holds the agreed price server-side, so a booking never takes a price from the model.
+// quoteKey records the length and options the haggling was about; a new quote starts over.
 export const negotiations = pgTable(
   "negotiations",
   {
     id: id(),
     conversationId: uuid("conversation_id").notNull().references(() => conversations.id),
-    productId: uuid("product_id").notNull().references(() => products.id),
+    styleId: uuid("style_id").notNull().references(() => styles.id),
+    quoteKey: text("quote_key").notNull().default(""),
     offerCount: integer("offer_count").notNull().default(0),
     lastAllowedCents: integer("last_allowed_cents"),
-    agreedUnitCents: integer("agreed_unit_cents"),
+    agreedCents: integer("agreed_cents"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex("negotiations_conversation_product").on(t.conversationId, t.productId)],
+  (t) => [uniqueIndex("negotiations_conversation_style").on(t.conversationId, t.styleId)],
 );
 
-export const orders = pgTable("orders", {
-  id: id(),
-  shopId: uuid("shop_id").notNull().references(() => shops.id),
-  conversationId: uuid("conversation_id").notNull().references(() => conversations.id),
-  orderReference: text("order_reference").notNull().unique(),
-  buyerEmail: text("buyer_email"),
-  subtotalCents: integer("subtotal_cents").notNull(),
-  discountCents: integer("discount_cents").notNull().default(0),
-  deliveryFeeCents: integer("delivery_fee_cents").notNull().default(0),
-  totalCents: integer("total_cents").notNull(),
-  currency: text("currency").notNull().default("USD"),
-  paymentStatus: paymentStatus("payment_status").notNull().default("draft"),
-  fulfilmentStatus: fulfilmentStatus("fulfilment_status").notNull().default("new"),
-  paypalOrderId: text("paypal_order_id").unique(),
-  paypalCaptureId: text("paypal_capture_id").unique(),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-});
-
-export const orderItems = pgTable("order_items", {
-  id: id(),
-  orderId: uuid("order_id").notNull().references(() => orders.id),
-  productId: uuid("product_id").notNull().references(() => products.id),
-  productNameSnapshot: text("product_name_snapshot").notNull(),
-  unitPriceCents: integer("unit_price_cents").notNull(),
-  quantity: integer("quantity").notNull(),
-  selectedOptions: jsonb("selected_options").$type<Record<string, string>>().notNull().default({}),
-  lineTotalCents: integer("line_total_cents").notNull(),
-});
+export const bookings = pgTable(
+  "bookings",
+  {
+    id: id(),
+    shopId: uuid("shop_id").notNull().references(() => shops.id),
+    conversationId: uuid("conversation_id").notNull().references(() => conversations.id),
+    styleId: uuid("style_id").notNull().references(() => styles.id),
+    reference: text("reference").notNull().unique(),
+    styleNameSnapshot: text("style_name_snapshot").notNull(),
+    imageUrl: text("image_url").notNull().default(""),
+    lengthInches: integer("length_inches"),
+    selectedOptions: jsonb("selected_options").$type<Record<string, string>>().notNull().default({}),
+    clientName: text("client_name").notNull().default(""),
+    clientEmail: text("client_email"),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    listCents: integer("list_cents").notNull(),
+    priceCents: integer("price_cents").notNull(),
+    // Set when the client picks deposit or full at checkout; amountDueCents is what PayPal charges.
+    paymentPlan: paymentPlan("payment_plan"),
+    amountDueCents: integer("amount_due_cents"),
+    amountPaidCents: integer("amount_paid_cents").notNull().default(0),
+    currency: text("currency").notNull().default("USD"),
+    paymentStatus: paymentStatus("payment_status").notNull().default("draft"),
+    status: bookingStatus("status").notNull().default("held"),
+    // An unpaid hold keeps the slot only until this time.
+    holdExpiresAt: timestamp("hold_expires_at", { withTimezone: true }).notNull(),
+    paypalOrderId: text("paypal_order_id").unique(),
+    paypalCaptureId: text("paypal_capture_id").unique(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("bookings_shop_starts").on(t.shopId, t.startsAt)],
+);
 
 export const paymentEvents = pgTable("payment_events", {
   id: id(),
-  orderId: uuid("order_id").references(() => orders.id),
+  bookingId: uuid("booking_id").references(() => bookings.id),
   provider: text("provider").notNull().default("paypal"),
   // The unique constraint is what makes duplicate webhooks harmless.
   providerEventId: text("provider_event_id").notNull().unique(),

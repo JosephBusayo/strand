@@ -1,0 +1,29 @@
+Photos from Pexels (https://www.pexels.com), used under the Pexels licence.
+file | Pexels photo
+knotless-braids-1.jpg | https://www.pexels.com/photo/2474255/
+knotless-braids-2.jpg | https://www.pexels.com/photo/5301538/
+screenshots/knotless-braids.jpg | https://www.pexels.com/photo/5301531/
+box-braids-1.jpg | https://www.pexels.com/photo/13767165/
+box-braids-2.jpg | https://www.pexels.com/photo/11515382/
+screenshots/box-braids.jpg | https://www.pexels.com/photo/8973502/
+cornrows-women-1.jpg | https://www.pexels.com/photo/11728787/
+cornrows-women-2.jpg | https://www.pexels.com/photo/32426283/
+screenshots/cornrows-women.jpg | https://www.pexels.com/photo/5309723/
+silk-press-1.jpg | https://www.pexels.com/photo/7447392/
+silk-press-2.jpg | https://www.pexels.com/photo/36288155/
+screenshots/silk-press.jpg | https://www.pexels.com/photo/12560398/
+locs-1.jpg | https://www.pexels.com/photo/3228834/
+locs-2.jpg | https://www.pexels.com/photo/3186970/
+screenshots/locs.jpg | https://www.pexels.com/photo/7193040/
+twists-women-1.jpg | https://www.pexels.com/photo/34191088/
+twists-women-2.jpg | https://www.pexels.com/photo/38281068/
+screenshots/twists-women.jpg | https://www.pexels.com/photo/40319895/
+fade-1.jpg | https://www.pexels.com/photo/12706272/
+fade-2.jpg | https://www.pexels.com/photo/7781848/
+screenshots/fade.jpg | https://www.pexels.com/photo/7447151/
+cornrows-men-1.jpg | https://www.pexels.com/photo/33890718/
+cornrows-men-2.jpg | https://www.pexels.com/photo/34191305/
+screenshots/cornrows-men.jpg | https://www.pexels.com/photo/30518480/
+twists-men-1.jpg | https://www.pexels.com/photo/20514563/
+twists-men-2.jpg | https://www.pexels.com/photo/33553635/
+screenshots/twists-men.jpg | https://www.pexels.com/photo/2794503/

@@ -14,8 +14,8 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Acag",
-  description: "Turn product questions and screenshots into confirmed PayPal orders.",
+  title: "Strand",
+  description: "An AI booking assistant that turns hairstyle screenshots into paid, booked appointments.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

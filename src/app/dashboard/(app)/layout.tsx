@@ -11,7 +11,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
     <div className="min-h-dvh md:flex">
       {/* Sticky and full height, so only the page content scrolls. */}
       <aside className="hidden w-60 shrink-0 flex-col gap-6 border-r border-line bg-surface p-4 md:sticky md:top-0 md:flex md:h-dvh">
-        <Link href="/" aria-label="Acag home" className="px-1">
+        <Link href="/" aria-label="Strand home" className="px-1">
           <Logo />
         </Link>
         <div className="rounded-card bg-surface-raised p-3">
@@ -21,7 +21,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
             target="_blank"
             className="mt-0.5 inline-flex items-center gap-1 text-xs text-ink-2 hover:text-ink"
           >
-            View shop <ExternalLink className="size-3" strokeWidth={1.5} aria-hidden />
+            View booking page <ExternalLink className="size-3" strokeWidth={1.5} aria-hidden />
           </Link>
         </div>
         <SideNav />
@@ -35,11 +35,11 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
 
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-line bg-bg/90 px-4 backdrop-blur md:hidden">
-          <Link href="/" aria-label="Acag home">
+          <Link href="/" aria-label="Strand home">
             <Logo />
           </Link>
           <Link href={`/s/${shop.slug}`} className="rounded-chip px-3 py-2 text-sm text-ink-2 hover:bg-surface">
-            View shop
+            View booking page
           </Link>
         </header>
         <main className="mx-auto w-full max-w-5xl px-4 pt-6 pb-24 md:px-10 md:py-10">{children}</main>

@@ -18,11 +18,17 @@ type Props = {
 };
 
 const SAMPLES = [
-  { label: "White sneaker post", file: "/samples/clear-match.jpg" },
-  { label: "Two white pairs", file: "/samples/ambiguous.jpg" },
+  { label: "Braids from Instagram", file: "/samples/braids.jpg" },
+  { label: "A fade for him", file: "/samples/fade.jpg" },
+  { label: "Locs I saved", file: "/samples/locs.jpg" },
+  { label: "Cornrows for him", file: "/samples/cornrows.jpg" },
 ];
 
-const STARTERS = ["What do you sell?", "Show me your sneakers", "How much is delivery?"];
+const STARTERS = [
+  "When are you open?",
+  "How much for knotless braids?",
+  "What do you do for men?",
+];
 
 export function ShopChat({ slug, shopName, shopDescription, initialMessages }: Props) {
   const [input, setInput] = useState("");
@@ -90,7 +96,7 @@ export function ShopChat({ slug, shopName, shopDescription, initialMessages }: P
       const body = await res.json();
       if (!res.ok) throw new Error(body.error);
       sendMessage({
-        text: "Do you have this one?",
+        text: "How much for this style?",
         metadata: { imageUrl: body.url },
       });
     } catch (e) {
@@ -140,9 +146,11 @@ export function ShopChat({ slug, shopName, shopDescription, initialMessages }: P
           <div className="space-y-6 py-4">
             <div className="space-y-2">
               <p className="font-display text-display-sm">
-                Saw something you like? <em className="font-normal text-ink-3">Show me.</em>
+                Saw a style you love? <em className="font-normal text-ink-3">Show me.</em>
               </p>
-              <p className="text-ink-2">Send a screenshot, or ask about anything in the shop.</p>
+              <p className="text-ink-2">
+                Send a screenshot to get a price and book a time, or just ask.
+              </p>
             </div>
             <div>
               <p className="mb-2 text-sm font-medium">Try a sample screenshot</p>
@@ -160,7 +168,7 @@ export function ShopChat({ slug, shopName, shopDescription, initialMessages }: P
                       alt=""
                       width={320}
                       height={240}
-                      className="aspect-[4/3] w-full object-cover"
+                      className="aspect-[4/5] w-full object-cover"
                     />
                     <span className="block px-3 py-2 text-sm">{sample.label}</span>
                   </button>
@@ -179,7 +187,7 @@ export function ShopChat({ slug, shopName, shopDescription, initialMessages }: P
           <div className="flex items-end gap-2" aria-live="polite">
             <LogoMark className="size-7 shrink-0" />
             <div className="flex items-center gap-1 rounded-card bg-surface-raised px-3 py-3 shadow-raised">
-              <span className="sr-only">{uploading ? "Uploading your image" : "The shop is typing"}</span>
+              <span className="sr-only">{uploading ? "Uploading your photo" : "The salon is typing"}</span>
               {[0, 1, 2].map((dot) => (
                 <span
                   key={dot}
@@ -218,7 +226,7 @@ export function ShopChat({ slug, shopName, shopDescription, initialMessages }: P
             type="file"
             accept="image/jpeg,image/png,image/webp"
             className="sr-only"
-            aria-label="Upload a product image"
+            aria-label="Upload a hairstyle photo"
             onChange={(event) => {
               const file = event.target.files?.[0];
               if (file) uploadImage(file);
@@ -240,7 +248,7 @@ export function ShopChat({ slug, shopName, shopDescription, initialMessages }: P
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Message the shop"
+            placeholder="Message the salon"
             aria-label="Message"
             className="min-h-11 min-w-0 flex-1 resize-none bg-transparent py-2.5 text-base leading-6 outline-none placeholder:text-ink-3"
           />
@@ -257,7 +265,7 @@ export function ShopChat({ slug, shopName, shopDescription, initialMessages }: P
           <ShieldCheck className="size-3.5" strokeWidth={1.5} aria-hidden />
           PayPal Sandbox ·
           <Link href="/" className="hover:text-ink">
-            Powered by <span className="font-display font-semibold text-ink">acag</span>
+            Booked with <span className="font-display font-semibold text-ink">strand</span>
           </Link>
         </p>
       </div>

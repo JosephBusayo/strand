@@ -24,7 +24,7 @@ async function main() {
     process.env.SUPABASE_URL ?? "",
     process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
   );
-  const bucket = process.env.SUPABASE_STORAGE_BUCKET ?? "acag";
+  const bucket = process.env.SUPABASE_STORAGE_BUCKET ?? "strand";
   const { data: existing, error: listError } = await supabase.storage.listBuckets();
   if (listError) throw new Error(`Storage: ${listError.message}`);
 

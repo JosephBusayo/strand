@@ -8,13 +8,16 @@ export default async function SettingsPage() {
   const shop = await requireSellerShop();
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Settings" title="Shop settings" action={<CopyLink path={`/s/${shop.slug}`} />} />
+      <PageHeader eyebrow="Settings" title="Salon settings" action={<CopyLink path={`/s/${shop.slug}`} />} />
       <div className="grid gap-4 lg:grid-cols-[1fr_300px] lg:items-start">
         <SettingsForm
           name={shop.name}
           description={shop.description}
-          deliveryFee={(shop.deliveryFeeCents / 100).toFixed(2)}
-          deliveryInformation={shop.deliveryInformation}
+          address={shop.address}
+          timezone={shop.timezone}
+          depositPercent={shop.depositPercent}
+          openingHours={shop.openingHours}
+          policies={shop.policies}
           assistantInstructions={shop.assistantInstructions}
         />
         <Card className="space-y-2">
@@ -27,7 +30,7 @@ export default async function SettingsPage() {
           </p>
           <p className="text-sm text-ink-2">
             This prototype uses one disclosed demo merchant account, so no real money moves and
-            sellers don&apos;t connect their own PayPal yet.
+            stylists don&apos;t connect their own PayPal yet.
           </p>
         </Card>
       </div>

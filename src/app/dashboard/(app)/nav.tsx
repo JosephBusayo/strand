@@ -1,13 +1,13 @@
 "use client";
 
-import { LayoutGrid, Package, Receipt, Settings } from "lucide-react";
+import { CalendarDays, LayoutGrid, Scissors, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const items = [
   { href: "/dashboard", label: "Overview", icon: LayoutGrid },
-  { href: "/dashboard/products", label: "Products", icon: Package },
-  { href: "/dashboard/orders", label: "Orders", icon: Receipt },
+  { href: "/dashboard/bookings", label: "Bookings", icon: CalendarDays },
+  { href: "/dashboard/styles", label: "Styles", icon: Scissors },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 

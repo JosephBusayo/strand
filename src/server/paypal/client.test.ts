@@ -19,21 +19,19 @@ describe("buildVerificationBody", () => {
 });
 
 describe("buildOrderBody", () => {
-  it("uses a breakdown that sums to the total", () => {
+  it("charges exactly the amount due and ties it to the booking", () => {
     const body = buildOrderBody({
-      orderId: "o-1",
-      orderReference: "ACG-1",
-      description: "Tote",
-      totals: { subtotalCents: 12000, discountCents: 2000, deliveryCents: 500, totalCents: 10500 },
+      bookingId: "b-1",
+      reference: "ST-1",
+      description: "Knotless Braids deposit",
+      amountCents: 2100,
       returnUrl: "https://example.test/return",
       cancelUrl: "https://example.test/cancel",
     });
-    const { value, breakdown } = body.purchase_units[0].amount;
-    const sum =
-      Number(breakdown.item_total.value) +
-      Number(breakdown.shipping.value) -
-      Number(breakdown.discount.value);
-    expect(sum.toFixed(2)).toBe(value);
+    const unit = body.purchase_units[0];
+    expect(unit.amount).toMatchObject({ currency_code: "USD", value: "21.00" });
+    expect(unit.amount.breakdown.item_total.value).toBe("21.00");
+    expect(unit.custom_id).toBe("b-1");
     expect(body.intent).toBe("CAPTURE");
   });
 });

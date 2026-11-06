@@ -1,8 +1,7 @@
-// Run: npm run paypal:smoke          creates an order and prints the approval link
+// Run: npm run paypal:smoke          creates a $21 deposit order and prints the approval link
 // Then: npm run paypal:smoke <id>    captures it after approval in the browser
 import { randomUUID } from "node:crypto";
 import { capturePayPalOrder, createPayPalOrder } from "../src/server/paypal/client";
-import { computeTotals } from "../src/server/pricing/totals";
 
 async function main() {
   const paypalOrderId = process.argv[2];
@@ -19,15 +18,10 @@ async function main() {
 
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
   const order = await createPayPalOrder({
-    orderId: randomUUID(),
-    orderReference: `SMOKE-${Date.now()}`,
-    description: "Acag smoke test",
-    totals: computeTotals({
-      listUnitCents: 6000,
-      agreedUnitCents: 5000,
-      quantity: 1,
-      deliveryCents: 500,
-    }),
+    bookingId: randomUUID(),
+    reference: `SMOKE-${Date.now()}`,
+    description: "Strand smoke test deposit",
+    amountCents: 2100,
     returnUrl: `${appUrl}/smoke/return`,
     cancelUrl: `${appUrl}/smoke/cancel`,
   });

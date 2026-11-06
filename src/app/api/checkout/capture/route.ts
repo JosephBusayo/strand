@@ -9,12 +9,15 @@ export async function POST(request: Request) {
   if (!parsed.success) return Response.json({ error: "Invalid request" }, { status: 400 });
 
   try {
-    const order = await confirmPayment(parsed.data.token);
-    if (!order) return Response.json({ error: "Order not found" }, { status: 404 });
+    const booking = await confirmPayment(parsed.data.token);
+    if (!booking) return Response.json({ error: "Booking not found" }, { status: 404 });
     return Response.json({
-      paymentStatus: order.paymentStatus,
-      orderReference: order.orderReference,
-      totalCents: order.totalCents,
+      paymentStatus: booking.paymentStatus,
+      reference: booking.reference,
+      paidCents: booking.paymentStatus === "paid" ? booking.amountPaidCents : 0,
+      balanceCents: booking.priceCents - booking.amountPaidCents,
+      startsAt: booking.startsAt.toISOString(),
+      styleName: booking.styleNameSnapshot,
     });
   } catch {
     return Response.json(

@@ -25,7 +25,7 @@ export async function storeImage(file: File, folder: "uploads" | "catalogue") {
     process.env.SUPABASE_URL ?? "",
     process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
   );
-  const bucket = process.env.SUPABASE_STORAGE_BUCKET ?? "acag";
+  const bucket = process.env.SUPABASE_STORAGE_BUCKET ?? "strand";
   const path = `${folder}/${randomUUID()}.jpg`;
   const { error } = await supabase.storage
     .from(bucket)

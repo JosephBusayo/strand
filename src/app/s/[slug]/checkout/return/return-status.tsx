@@ -7,15 +7,32 @@ import { LogoMark } from "@/components/brand/logo";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/primitives";
 
+type Paid = {
+  kind: "paid";
+  reference: string;
+  styleName: string;
+  startsAt: string;
+  paidCents: number;
+  balanceCents: number;
+};
+
 type State =
   | { kind: "processing" }
-  | { kind: "paid"; reference: string; totalCents: number }
+  | Paid
   | { kind: "pending" }
   | { kind: "failed"; message: string };
 
 const money = (amountCents: number) => `$${(amountCents / 100).toFixed(2)}`;
 
-export function ReturnStatus({ slug, token }: { slug: string; token?: string }) {
+export function ReturnStatus({
+  slug,
+  token,
+  timeZone,
+}: {
+  slug: string;
+  token?: string;
+  timeZone: string;
+}) {
   const [state, setState] = useState<State>(
     token ? { kind: "processing" } : { kind: "failed", message: "This link has no payment details." },
   );
@@ -32,7 +49,7 @@ export function ReturnStatus({ slug, token }: { slug: string; token?: string }) 
       const body = await res.json();
       if (!active) return;
       if (res.ok && body.paymentStatus === "paid") {
-        setState({ kind: "paid", reference: body.orderReference, totalCents: body.totalCents });
+        setState({ kind: "paid", ...body });
       } else if (res.ok && body.paymentStatus === "pending_payment") {
         setState({ kind: "pending" });
       } else {
@@ -43,6 +60,16 @@ export function ReturnStatus({ slug, token }: { slug: string; token?: string }) 
       active = false;
     };
   }, [token]);
+
+  const when = (iso: string) =>
+    new Date(iso).toLocaleString("en-US", {
+      timeZone,
+      weekday: "long",
+      day: "numeric",
+      month: "short",
+      hour: "numeric",
+      minute: "2-digit",
+    });
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center px-4 py-10">
@@ -55,19 +82,17 @@ export function ReturnStatus({ slug, token }: { slug: string; token?: string }) 
         )}
         {state.kind === "paid" && (
           <Status icon={<CheckCircle2 className="size-7" strokeWidth={1.5} />} tone="bg-success/10 text-success">
-            <h1 className="text-display-sm">Payment verified</h1>
-            <p className="text-ink-2">The seller has your order and will update you when it ships.</p>
+            <h1 className="text-display-sm">You&apos;re booked</h1>
+            <p className="text-ink-2">Payment verified. The time is held for you.</p>
             <dl className="mt-2 space-y-2 rounded-card bg-surface p-4 text-left text-sm">
-              <div className="flex justify-between">
-                <dt className="text-ink-2">Order reference</dt>
-                <dd className="font-medium">{state.reference}</dd>
-              </div>
-              {typeof state.totalCents === "number" && (
-                <div className="flex justify-between">
-                  <dt className="text-ink-2">Paid</dt>
-                  <dd className="font-medium">{money(state.totalCents)} USD</dd>
-                </div>
-              )}
+              <Row label="Style" value={state.styleName} />
+              <Row label="When" value={when(state.startsAt)} />
+              <Row label="Reference" value={state.reference} />
+              <Row label="Paid now" value={`${money(state.paidCents)} USD`} />
+              <Row
+                label="At the appointment"
+                value={state.balanceCents > 0 ? `${money(state.balanceCents)} USD` : "Nothing, paid in full"}
+              />
             </dl>
           </Status>
         )}
@@ -80,7 +105,7 @@ export function ReturnStatus({ slug, token }: { slug: string; token?: string }) 
         {state.kind === "failed" && (
           <Status icon={<XCircle className="size-7" strokeWidth={1.5} />} tone="bg-danger/10 text-danger">
             <h1 className="text-display-sm">Payment not confirmed</h1>
-            <p className="text-ink-2">{state.message}</p>
+            <p className="text-ink-2">{state.message} Your time isn&apos;t booked yet.</p>
           </Status>
         )}
         {state.kind !== "processing" && (
@@ -90,9 +115,18 @@ export function ReturnStatus({ slug, token }: { slug: string; token?: string }) 
         )}
       </Card>
       <Link href="/" className="mt-6 flex items-center gap-2 text-xs text-ink-2 hover:text-ink">
-        <LogoMark className="size-5" /> Powered by acag
+        <LogoMark className="size-5" /> Booked with strand
       </Link>
     </main>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <dt className="text-ink-2">{label}</dt>
+      <dd className="text-right font-medium">{value}</dd>
+    </div>
   );
 }
 

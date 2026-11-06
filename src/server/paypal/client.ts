@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { toPayPalValue, type Totals } from "@/server/pricing/totals";
+import { toPayPalValue } from "@/server/pricing/quote";
 
 const BASE_URLS = {
   sandbox: "https://api-m.sandbox.paypal.com",
@@ -79,16 +79,18 @@ const orderResponse = z.object({
 });
 
 export type CreateOrderInput = {
-  orderId: string;
-  orderReference: string;
+  bookingId: string;
+  reference: string;
   description: string;
-  totals: Totals;
+  // The deposit or the full price: whatever the client chose to pay now.
+  amountCents: number;
   returnUrl: string;
   cancelUrl: string;
+  // Different plans need different PayPal orders, so the plan is part of the idempotency key.
+  requestKey?: string;
 };
 
 export function buildOrderBody(input: CreateOrderInput) {
-  const { totals } = input;
   const money = (amountCents: number) => ({
     currency_code: "USD",
     value: toPayPalValue(amountCents),
@@ -97,16 +99,12 @@ export function buildOrderBody(input: CreateOrderInput) {
     intent: "CAPTURE",
     purchase_units: [
       {
-        custom_id: input.orderId,
-        invoice_id: input.orderReference,
+        custom_id: input.bookingId,
+        invoice_id: input.reference,
         description: input.description.slice(0, 127),
         amount: {
-          ...money(totals.totalCents),
-          breakdown: {
-            item_total: money(totals.subtotalCents),
-            shipping: money(totals.deliveryCents),
-            discount: money(totals.discountCents),
-          },
+          ...money(input.amountCents),
+          breakdown: { item_total: money(input.amountCents) },
         },
       },
     ],
@@ -126,7 +124,7 @@ export async function createPayPalOrder(input: CreateOrderInput) {
   const order = orderResponse.parse(
     await request("/v2/checkout/orders", {
       body: JSON.stringify(buildOrderBody(input)),
-      requestId: `create-${input.orderId}`,
+      requestId: `create-${input.requestKey ?? input.bookingId}`,
     }),
   );
   const approveUrl = order.links.find((l) => l.rel === "payer-action" || l.rel === "approve")?.href;
